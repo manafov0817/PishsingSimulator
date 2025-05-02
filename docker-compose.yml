@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # React Frontend Service
+  phishing-frontend:
+    build:
+      context: ./phishing-frontend
+      dockerfile: Dockerfile
+    container_name: phishing-frontend
+    ports:
+      - "5173:80" # Map host port 5173 to container port 80
+    restart: unless-stopped
+
+  # NestJS Management Service
+  nestjs-management:
+    build:
+      context: ./phishing-management-service
+      dockerfile: Dockerfile
+    container_name: phishing-management-service
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodb
+      - dotnet-simulation
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/phishingdb
+      - JWT_SECRET=${JWT_SECRET:-mysecretkey}
+      - DOTNET_SERVER_URL=http://dotnet-simulation:80/api
+      - NESTJS_SERVER_URL=http://nestjs-management:3000
+    volumes:
+      - ./phishing-management-service:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # .NET Phishing Simulation Service
+  dotnet-simulation:
+    build:
+      context: ./phishing-simulation-service
+      dockerfile: Dockerfile
+    container_name: phishing-simulation-service
+    ports:
+      - "5000:80"
+    depends_on:
+      - mongodb
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - MongoDBSettings__ConnectionString=mongodb://mongodb:27017
+      - MongoDBSettings__DatabaseName=phishingdb
+      - MongoDBSettings__PhishingAttemptsCollectionName=phishingAttempts
+      - PhishingSettings__BaseUrl=http://localhost:5000
+      - NESTJS_SERVER_URL=http://nestjs-management:3000
+      - EmailSettings__SmtpServer=sandbox.smtp.mailtrap.io
+      - EmailSettings__SmtpPort=2525
+      - EmailSettings__Username=916138dd973d4c
+      - EmailSettings__Password=3d4e9ba0d0d25d
+    restart: unless-stopped
+
+  # MongoDB
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
