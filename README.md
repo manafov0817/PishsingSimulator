@@ -212,6 +212,7 @@ phishing-simulation-app/
   - Customizable email templates
   - Variable substitution for personalization
   - HTML and plain text support
+  - Use `sampleForTrackingUrl.html` as a template for creating emails with tracking capabilities
 
 - **Click Tracking**
   - Unique tracking links for each recipient
